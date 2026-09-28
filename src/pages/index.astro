@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TrackSection from '../components/TrackSection.astro';
+import { tracks } from '../data/tracks';
+---
+
+<Layout>
+  {tracks.map((track) => (
+    <TrackSection {...track} />
+  ))}
+</Layout>

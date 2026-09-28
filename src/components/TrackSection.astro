@@ -1,0 +1,199 @@
+---
+import type { Track } from '../data/tracks';
+
+interface Props extends Track {}
+
+const {
+  title,
+  releaseDate,
+  primaryWords,
+  secondaryWords,
+  description,
+  listenUrl,
+  accentColor,
+  minSize,
+  maxSize,
+  secondaryMinOpacity,
+} = Astro.props;
+---
+
+<article class="track" style={`--track-accent: var(--color-${accentColor})`}>
+  <section class="hero">
+    <div class="hero-sticky">
+      <!-- Real heading for SEO/screen readers; the scroll-scrubbed markup
+           below is purely decorative and hidden from assistive tech. -->
+      <h2 class="sr-only">{title}</h2>
+
+      <div
+        class="headline"
+        aria-hidden="true"
+        data-min-size={minSize}
+        data-max-size={maxSize}
+        data-secondary-min-opacity={secondaryMinOpacity}
+      >
+        <div class="headline-content">
+          <div class="headline-line headline-line--primary">
+            {primaryWords.map((word) => (
+              <span class="group"><span>{word}</span></span>
+            ))}
+          </div>
+          <div class="headline-line headline-line--secondary">
+            {secondaryWords.map((word) => (
+              <span class="group"><span>{word}</span></span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="track-description">
+        <p class="track-description-eyebrow">{releaseDate}</p>
+        <p class="track-description-body">{description}</p>
+        <a class="track-description-listen" href={listenUrl}>Listen</a>
+      </div>
+    </div>
+  </section>
+</article>
+
+<script>
+  // Drives every `.hero` pinned track on the page off a single shared
+  // scroll/resize listener, rather than one listener per track.
+  //
+  // Each track's scroll runway is split into three sequential phases:
+  //   1. Headline phase   - headline shrinks (maxSize -> minSize) and the
+  //                         secondary lyric line fades in
+  //   2. Description phase - once the headline has settled, the description
+  //                          block (stacked below it) fades/rises in
+  //   3. Hold phase        - remaining scroll distance: everything stays put
+  //                          (progress is already clamped at 1) while
+  //                          `.hero-sticky` keeps pinning, giving a beat to
+  //                          read before releasing into the next track
+  interface TrackInstance {
+    hero: HTMLElement;
+    headline: HTMLElement;
+    headlineContent: HTMLElement;
+    secondaryLine: HTMLElement;
+    trackDescription: HTMLElement;
+    minSize: number;
+    maxSize: number;
+    secondaryMinOpacity: number;
+    heroTop: number;
+    heroHeight: number;
+  }
+
+  const BASE_FONT_SIZE_VW = 12;
+
+  // Scroll-phase budget, in vh of scrollable distance (must match the
+  // `.hero` height set in src/styles/global.css: 250 + 90 + 70 + 100 = 510vh).
+  const HEADLINE_PHASE_VH = 250;
+  const DESCRIPTION_PHASE_VH = 90;
+  const HOLD_PHASE_VH = 70;
+  const TOTAL_SCROLLABLE_VH = HEADLINE_PHASE_VH + DESCRIPTION_PHASE_VH + HOLD_PHASE_VH;
+  const HEADLINE_PHASE_END = HEADLINE_PHASE_VH / TOTAL_SCROLLABLE_VH;
+  const DESCRIPTION_PHASE_END = (HEADLINE_PHASE_VH + DESCRIPTION_PHASE_VH) / TOTAL_SCROLLABLE_VH;
+
+  const instances: TrackInstance[] = [];
+  let viewportHeight = 0;
+
+  function clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  // Remaps `value` from range [start, end] to [0, 1], clamped.
+  function remap(value: number, start: number, end: number): number {
+    if (end <= start) return value >= end ? 1 : 0;
+    return clamp((value - start) / (end - start), 0, 1);
+  }
+
+  function collectInstances(): void {
+    instances.length = 0;
+
+    document.querySelectorAll<HTMLElement>('.hero').forEach((hero) => {
+      const headline = hero.querySelector<HTMLElement>('.headline');
+      const headlineContent = hero.querySelector<HTMLElement>('.headline-content');
+      const secondaryLine = hero.querySelector<HTMLElement>('.headline-line--secondary');
+      const trackDescription = hero.querySelector<HTMLElement>('.track-description');
+
+      if (!headline || !headlineContent || !secondaryLine || !trackDescription) return;
+
+      instances.push({
+        hero,
+        headline,
+        headlineContent,
+        secondaryLine,
+        trackDescription,
+        minSize: parseFloat(headline.dataset.minSize ?? '') || 0.35,
+        maxSize: parseFloat(headline.dataset.maxSize ?? '') || 1.6,
+        secondaryMinOpacity: parseFloat(headline.dataset.secondaryMinOpacity ?? '') || 0.06,
+        heroTop: 0,
+        heroHeight: 0,
+      });
+    });
+  }
+
+  function measure(): void {
+    viewportHeight = document.documentElement.clientHeight;
+    for (const instance of instances) {
+      instance.heroTop = instance.hero.offsetTop;
+      instance.heroHeight = instance.hero.offsetHeight;
+    }
+  }
+
+  function update(): void {
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+
+    for (const instance of instances) {
+      const scrollable = instance.heroHeight - viewportHeight;
+      const progress =
+        scrollable > 0 ? clamp((scrollY - instance.heroTop) / scrollable, 0, 1) : 0;
+
+      const headlineProgress = remap(progress, 0, HEADLINE_PHASE_END);
+      const descriptionProgress = remap(progress, HEADLINE_PHASE_END, DESCRIPTION_PHASE_END);
+
+      // Shrinks as you scroll down (maxSize -> minSize), making room for
+      // the secondary line beneath it to reveal itself.
+      const currentSize =
+        instance.maxSize - (instance.maxSize - instance.minSize) * headlineProgress;
+
+      // Animate font-size directly (not transform: scale) so the browser
+      // reflows the text and the flex-wrap container breaks it onto a new
+      // line once it no longer fits within the viewport width.
+      instance.headlineContent.style.fontSize = `${BASE_FONT_SIZE_VW * currentSize}vw`;
+
+      // Secondary line fades in from barely-readable to fully visible,
+      // alongside the headline shrink.
+      instance.secondaryLine.style.opacity = String(
+        instance.secondaryMinOpacity + (1 - instance.secondaryMinOpacity) * headlineProgress
+      );
+
+      // Once the headline has settled, the description fades/rises in.
+      instance.trackDescription.style.opacity = String(descriptionProgress);
+      instance.trackDescription.style.transform = `translate3d(0, ${
+        (1 - descriptionProgress) * 16
+      }px, 0)`;
+    }
+  }
+
+  function onResize(): void {
+    measure();
+    update();
+  }
+
+  if (!window.__scrollHeadlineBootstrapped) {
+    window.__scrollHeadlineBootstrapped = true;
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', onResize);
+
+    window.addEventListener('load', () => {
+      collectInstances();
+      measure();
+      update();
+    });
+  }
+
+  declare global {
+    interface Window {
+      __scrollHeadlineBootstrapped?: boolean;
+    }
+  }
+</script>

@@ -57,11 +57,17 @@ body {
   color: var(--color-gold);
 }
 
-/* --- Hero / pinned scroll area --- */
+/* --- Hero / pinned scroll area (one per track) ---
+   Scroll-phase budget (must match the JS constants in TrackSection.astro):
+     headline phase:    250vh scrollable (shrink + secondary line reveal)
+     description phase:  90vh scrollable (description fades/rises in)
+     hold phase:          70vh scrollable (everything stays pinned/visible)
+     total hero height: 250 + 90 + 70 + 100 (viewport) = 510vh
+*/
 
 .hero {
   position: relative;
-  height: 350vh; /* scroll runway: taller = longer scrub distance */
+  height: 510vh;
 }
 
 .hero-sticky {
@@ -70,9 +76,11 @@ body {
   height: 100vh;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  padding-top: 14vh;
+  gap: 4vh;
+  padding-top: 12vh;
   padding-left: 5vw;
   padding-right: 5vw;
 }
@@ -103,7 +111,7 @@ body {
 
 .headline-line--secondary {
   opacity: 0.06; /* barely readable on load; increases as you scroll */
-  color: var(--color-mango);
+  color: var(--track-accent, var(--color-mango));
 }
 
 .group {
@@ -120,30 +128,40 @@ body {
   white-space: nowrap;
 }
 
-/* --- Filler content below the hero --- */
+/* --- Track description (stacked below the headline, inside the same
+   pinned .hero-sticky viewport; revealed as its own scroll phase) --- */
 
-.filler {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10vh 8vw;
-  background: var(--color-cream);
-  color: var(--color-vinyl);
-}
-
-.filler-content {
+.track-description {
   max-width: 640px;
+  opacity: 0; /* animated via JS as the description phase progresses */
+  will-change: opacity, transform;
 }
 
-.filler-content h2 {
-  font-size: 28px;
-  padding-bottom: 20px;
-  color: var(--color-jeepney);
+.track-description-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding-bottom: 12px;
 }
 
-.filler-content p {
+.track-description-body {
   font-weight: 400;
   font-size: 17px;
   line-height: 1.5em;
+}
+
+.track-description-listen {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--track-accent, var(--color-jeepney));
+  border-bottom: 1px solid currentColor;
+  opacity: 0.85;
+}
+
+.track-description-listen:hover {
+  opacity: 1;
 }
