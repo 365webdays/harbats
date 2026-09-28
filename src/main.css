@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vinyl: #1E1A17;
+  --color-cream: #F4E9D2;
+  --color-jeepney: #C4342B;
+  --color-mango: #E67A25;
+  --color-gold: #EFB52C;
+  --color-avocado: #7B8A34;
+  --color-teal: #2C8A87;
+  --color-walnut: #5B3A26;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--color-vinyl);
+  color: var(--color-cream);
+}
+
+body {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-weight: 700;
+}
+
+.page {
+  position: relative;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.page.page__ready {
+  opacity: 1;
+}
+
+.page-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 32px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 10;
+  opacity: 0.6;
+}
+
+.page-nav-hint {
+  color: var(--color-gold);
+}
+
+/* --- Hero / pinned scroll area --- */
+
+.hero {
+  position: relative;
+  height: 350vh; /* scroll runway: taller = longer scrub distance */
+}
+
+.hero-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 14vh;
+  padding-left: 5vw;
+  padding-right: 5vw;
+}
+
+.headline {
+  position: relative;
+  width: 100%;
+}
+
+.headline-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 90vw;
+  font-size: 12vw; /* base size; scaled directly via JS, not transform, so it reflows and wraps */
+  row-gap: 0;
+}
+
+.headline-line {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: baseline;
+  align-content: flex-start;
+  line-height: 0.85em; /* override Tailwind preflight's 1.5 so wrapped rows stay tight */
+  row-gap: 0;
+  column-gap: 0.35em;
+}
+
+.headline-line--secondary {
+  opacity: 0.06; /* barely readable on load; increases as you scroll */
+  color: var(--color-mango);
+}
+
+.group {
+  display: inline-block;
+  line-height: 0.85em;
+}
+
+.group span {
+  display: inline-block;
+  font-size: 1em;
+  line-height: 0.85em;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* --- Filler content below the hero --- */
+
+.filler {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10vh 8vw;
+  background: var(--color-cream);
+  color: var(--color-vinyl);
+}
+
+.filler-content {
+  max-width: 640px;
+}
+
+.filler-content h2 {
+  font-size: 28px;
+  padding-bottom: 20px;
+  color: var(--color-jeepney);
+}
+
+.filler-content p {
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.5em;
+}
