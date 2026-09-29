@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
-@theme {
+/* `static` forces Tailwind to always emit every variable below as a real
+   CSS variable, even though most of them are only ever referenced
+   dynamically (via `var(--color-${accentColor})` string interpolation in
+   .astro frontmatter) rather than through a statically-scannable utility
+   class Tailwind's content scanner can detect as "used". Without `static`,
+   Tailwind silently drops "unused" theme variables from the compiled CSS. */
+@theme static {
   --color-vinyl: #1E1A17;
   --color-cream: #F4E9D2;
   --color-jeepney: #C4342B;
@@ -111,7 +117,7 @@ body {
 
 .headline-line--secondary {
   opacity: 0.06; /* barely readable on load; increases as you scroll */
-  color: var(--track-accent, var(--color-mango));
+  color: var(--secondary-accent, var(--color-mango));
 }
 
 .group {
@@ -164,4 +170,149 @@ body {
 
 .track-description-listen:hover {
   opacity: 1;
+}
+
+/* --- Sticky media player (fixed, vertically centered on the right) --- */
+
+.media-player {
+  position: fixed;
+  top: 50%;
+  right: 32px;
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 260px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: color-mix(in srgb, var(--color-vinyl) 85%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-radius: 12px;
+  font-family: 'Google Sans Code', 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.media-player-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.media-player-toggle {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-gold);
+  background: transparent;
+  color: var(--color-gold);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.media-player-toggle:hover {
+  background: color-mix(in srgb, var(--color-gold) 15%, transparent);
+}
+
+.media-player-toggle:disabled,
+.media-player-toggle:disabled:hover {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+.media-player-meta {
+  min-width: 0;
+}
+
+.media-player-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-gold);
+}
+
+.media-player-eyebrow {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding-top: 4px;
+}
+
+.media-player-list {
+  list-style: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.media-player-list-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--color-gold);
+  opacity: 0.55;
+  text-decoration: none;
+}
+
+.media-player-list-link:hover {
+  opacity: 0.85;
+}
+
+/* Tracks without an audio file yet: dimmed, still clickable to scroll. */
+.media-player-list-link[aria-disabled='true'],
+.media-player-list-link[aria-disabled='true']:hover {
+  opacity: 0.3;
+}
+
+.media-player-list-link[aria-current='true'] {
+  opacity: 1;
+  color: var(--color-gold);
+  background: color-mix(in srgb, var(--color-gold) 12%, transparent);
+}
+
+@media (max-width: 900px) {
+  .media-player {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: auto;
+    max-height: none;
+    gap: 10px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .media-player-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .media-player-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .media-player-list-link {
+    white-space: nowrap;
+  }
 }

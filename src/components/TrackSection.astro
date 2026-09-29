@@ -4,6 +4,7 @@ import type { Track } from '../data/tracks';
 interface Props extends Track {}
 
 const {
+  slug,
   title,
   releaseDate,
   primaryWords,
@@ -11,13 +12,18 @@ const {
   description,
   listenUrl,
   accentColor,
+  secondaryAccentColor,
   minSize,
   maxSize,
   secondaryMinOpacity,
 } = Astro.props;
 ---
 
-<article class="track" style={`--track-accent: var(--color-${accentColor})`}>
+<article
+  class="track"
+  id={slug}
+  style={`--track-accent: var(--color-${accentColor}); --secondary-accent: var(--color-${secondaryAccentColor})`}
+>
   <section class="hero">
     <div class="hero-sticky">
       <!-- Real heading for SEO/screen readers; the scroll-scrubbed markup
@@ -67,6 +73,8 @@ const {
   //                          (progress is already clamped at 1) while
   //                          `.hero-sticky` keeps pinning, giving a beat to
   //                          read before releasing into the next track
+  import { HEADLINE_PHASE_END, DESCRIPTION_PHASE_END } from '../lib/scrollPhases';
+
   interface TrackInstance {
     hero: HTMLElement;
     headline: HTMLElement;
@@ -81,15 +89,6 @@ const {
   }
 
   const BASE_FONT_SIZE_VW = 12;
-
-  // Scroll-phase budget, in vh of scrollable distance (must match the
-  // `.hero` height set in src/styles/global.css: 250 + 90 + 70 + 100 = 510vh).
-  const HEADLINE_PHASE_VH = 250;
-  const DESCRIPTION_PHASE_VH = 90;
-  const HOLD_PHASE_VH = 70;
-  const TOTAL_SCROLLABLE_VH = HEADLINE_PHASE_VH + DESCRIPTION_PHASE_VH + HOLD_PHASE_VH;
-  const HEADLINE_PHASE_END = HEADLINE_PHASE_VH / TOTAL_SCROLLABLE_VH;
-  const DESCRIPTION_PHASE_END = (HEADLINE_PHASE_VH + DESCRIPTION_PHASE_VH) / TOTAL_SCROLLABLE_VH;
 
   const instances: TrackInstance[] = [];
   let viewportHeight = 0;

@@ -1,0 +1,214 @@
+---
+import { tracks } from '../data/tracks';
+
+const [defaultTrack] = tracks;
+---
+
+<aside class="media-player" style={`--track-accent: var(--color-${defaultTrack.accentColor})`}>
+  <div class="media-player-current">
+    <button
+      class="media-player-toggle"
+      type="button"
+      aria-label="Play"
+      aria-pressed="false"
+      disabled={!defaultTrack.audioUrl}
+      data-role="toggle"
+    >
+      <span class="media-player-toggle-icon" data-role="icon" aria-hidden="true">▶</span>
+    </button>
+    <div class="media-player-meta">
+      <p class="media-player-title" data-role="title">{defaultTrack.title}</p>
+      <p class="media-player-eyebrow" data-role="eyebrow">{defaultTrack.releaseDate}</p>
+    </div>
+  </div>
+
+  <ul class="media-player-list" data-role="list">
+    {tracks.map((track) => (
+      <li>
+        <a
+          href={`#${track.slug}`}
+          class="media-player-list-link"
+          data-slug={track.slug}
+          data-title={track.title}
+          data-eyebrow={track.releaseDate}
+          data-audio={track.audioUrl}
+          data-accent={track.accentColor}
+          aria-current={track.slug === defaultTrack.slug ? 'true' : undefined}
+          aria-disabled={track.audioUrl ? undefined : 'true'}
+        >
+          {track.title}
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <audio data-role="audio" preload="metadata"></audio>
+</aside>
+
+<script>
+  import { getSettledScrollTarget } from '../lib/scrollPhases';
+  import { smoothScrollTo } from '../lib/smoothScroll';
+
+  interface TrackLinkData {
+    slug: string;
+    title: string;
+    eyebrow: string;
+    audio: string;
+    accent: string;
+  }
+
+  function init(): void {
+    const playerRef = document.querySelector<HTMLElement>('.media-player');
+    if (!playerRef) return;
+    const player = playerRef;
+
+    const audioRef = player.querySelector<HTMLAudioElement>('[data-role="audio"]');
+    const toggleRef = player.querySelector<HTMLButtonElement>('[data-role="toggle"]');
+    const iconRef = player.querySelector<HTMLElement>('[data-role="icon"]');
+    const titleRef = player.querySelector<HTMLElement>('[data-role="title"]');
+    const eyebrowRef = player.querySelector<HTMLElement>('[data-role="eyebrow"]');
+    const links = Array.from(
+      player.querySelectorAll<HTMLAnchorElement>('.media-player-list-link')
+    );
+
+    if (!audioRef || !toggleRef || !iconRef || !titleRef || !eyebrowRef || links.length === 0) {
+      return;
+    }
+
+    // Re-bind to non-null consts: the narrowing above doesn't persist into
+    // the nested closures (loadTrack, setPlayingState, event handlers) below,
+    // but a `const` typed as non-null at declaration does.
+    const audio = audioRef;
+    const toggle = toggleRef;
+    const icon = iconRef;
+    const titleEl = titleRef;
+    const eyebrowEl = eyebrowRef;
+
+    let currentSlug = '';
+
+    function dataFor(link: HTMLAnchorElement): TrackLinkData {
+      return {
+        slug: link.dataset.slug ?? '',
+        title: link.dataset.title ?? '',
+        eyebrow: link.dataset.eyebrow ?? '',
+        audio: link.dataset.audio ?? '',
+        accent: link.dataset.accent ?? 'mango',
+      };
+    }
+
+    function loadTrack(slug: string, { scroll = false, autoplay = false } = {}): void {
+      const link = links.find((l) => l.dataset.slug === slug);
+      if (!link) return;
+      const data = dataFor(link);
+
+      if (currentSlug !== data.slug) {
+        currentSlug = data.slug;
+        titleEl.textContent = data.title;
+        eyebrowEl.textContent = data.eyebrow;
+        player.style.setProperty('--track-accent', `var(--color-${data.accent})`);
+
+        if (data.audio) {
+          audio.src = data.audio;
+          toggle.disabled = false;
+          if (autoplay) audio.play().catch(() => {});
+        } else {
+          // Track has no audio file yet — stop/unload whatever was playing
+          // and disable the play button rather than trying to play nothing.
+          audio.pause();
+          audio.removeAttribute('src');
+          audio.load();
+          toggle.disabled = true;
+        }
+
+        links.forEach((l) => {
+          if (l.dataset.slug === data.slug) {
+            l.setAttribute('aria-current', 'true');
+          } else {
+            l.removeAttribute('aria-current');
+          }
+        });
+      }
+
+      if (scroll) {
+        const section = document.getElementById(data.slug);
+        if (section) {
+          const target = getSettledScrollTarget(
+            section.offsetTop,
+            section.offsetHeight,
+            document.documentElement.clientHeight
+          );
+          smoothScrollTo(target);
+        }
+      }
+    }
+
+    function setPlayingState(isPlaying: boolean): void {
+      icon.textContent = isPlaying ? '❚❚' : '▶';
+      toggle.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+      toggle.setAttribute('aria-pressed', String(isPlaying));
+    }
+
+    toggle.addEventListener('click', () => {
+      if (toggle.disabled || !audio.getAttribute('src')) return;
+      if (audio.paused) {
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+    });
+
+    audio.addEventListener('play', () => setPlayingState(true));
+    audio.addEventListener('pause', () => setPlayingState(false));
+    audio.addEventListener('ended', () => setPlayingState(false));
+
+    links.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const slug = link.dataset.slug ?? '';
+
+        if (slug === currentSlug) {
+          // Already the loaded track: toggle play/pause, same as the button.
+          if (!toggle.disabled && audio.getAttribute('src')) {
+            if (audio.paused) {
+              audio.play().catch(() => {});
+            } else {
+              audio.pause();
+            }
+          }
+          loadTrack(slug, { scroll: true });
+        } else {
+          loadTrack(slug, { scroll: true, autoplay: true });
+        }
+      });
+    });
+
+    // Scrollspy: keep the player's loaded (but paused) track in sync with
+    // whichever track section is centered in the viewport. Never interrupts
+    // an actively playing track.
+    const sections = links
+      .map((link) => document.getElementById(link.dataset.slug ?? ''))
+      .filter((el): el is HTMLElement => el !== null);
+
+    if (sections.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!audio.paused) return;
+          const visible = entries.find((entry) => entry.isIntersecting);
+          if (visible?.target.id) loadTrack(visible.target.id);
+        },
+        { rootMargin: '-50% 0px -50% 0px', threshold: 0 }
+      );
+
+      sections.forEach((section) => observer.observe(section));
+    }
+
+    // Start pre-loaded on the newest release (first link), paused.
+    loadTrack(links[0].dataset.slug ?? '');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>

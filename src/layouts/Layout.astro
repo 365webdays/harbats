@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import 'lenis/dist/lenis.css';
+import MediaPlayer from '../components/MediaPlayer.astro';
 
 interface Props {
   title?: string;
@@ -53,9 +55,6 @@ const {
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png" />
     <link rel="manifest" href="/assets/favicon/manifest.json" />
-    <link rel="mask-icon" href="/assets/favicon/safari-pinned-tab.svg" color="#6366f1" />
-    <meta name="msapplication-TileColor" content="#080032" />
-    <meta name="msapplication-config" content="/assets/favicon/browserconfig.xml" />
     <meta name="theme-color" content="#E5E5D6" />
 
     <!-- Google Fonts: Inter, Bold 700 -->
@@ -63,6 +62,12 @@ const {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Google Fonts: Google Sans Code, used for the media player -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;700&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -74,14 +79,20 @@ const {
       </header>
 
       <slot />
+
+      <MediaPlayer />
     </div>
 
     <script>
+      import { initLenis } from '../lib/lenis';
+
       window.addEventListener('load', () => {
         requestAnimationFrame(() => {
           document.querySelector('.page')?.classList.add('page__ready');
         });
       });
+
+      initLenis();
     </script>
   </body>
 </html>
