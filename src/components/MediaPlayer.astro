@@ -1,5 +1,6 @@
 ---
 import { tracks } from '../data/tracks';
+import StreamingLinks from './StreamingLinks.astro';
 
 const [defaultTrack] = tracks;
 ---
@@ -41,6 +42,8 @@ const [defaultTrack] = tracks;
       </li>
     ))}
   </ul>
+
+  <StreamingLinks />
 
   <audio data-role="audio" preload="metadata"></audio>
 </aside>
