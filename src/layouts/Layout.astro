@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import 'lenis/dist/lenis.css';
 import MediaPlayer from '../components/MediaPlayer.astro';
+import RetroRibbons from '../components/RetroRibbons.astro';
 
 interface Props {
   title?: string;
@@ -73,9 +74,14 @@ const {
   </head>
   <body>
     <div class="page">
+      <RetroRibbons />
+
       <header class="page-nav">
         <span>Harbats</span>
-        <span class="page-nav-hint">Scroll ↓</span>
+        <span class="page-nav-right">
+          <span class="page-nav-hint">Scroll ↓</span>
+          <a href="#" class="page-nav-top">Back to top ↑</a>
+        </span>
       </header>
 
       <slot />
@@ -85,6 +91,7 @@ const {
 
     <script>
       import { initLenis } from '../lib/lenis';
+      import { smoothScrollTo } from '../lib/smoothScroll';
 
       window.addEventListener('load', () => {
         requestAnimationFrame(() => {
@@ -93,6 +100,19 @@ const {
       });
 
       initLenis();
+
+      const nav = document.querySelector('.page-nav');
+      const updateNav = () => {
+        nav?.classList.toggle('page-nav--scrolled', window.scrollY > window.innerHeight);
+      };
+      window.addEventListener('scroll', updateNav, { passive: true });
+      window.addEventListener('resize', updateNav);
+      updateNav();
+
+      document.querySelector('.page-nav-top')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        smoothScrollTo(0);
+      });
     </script>
   </body>
 </html>

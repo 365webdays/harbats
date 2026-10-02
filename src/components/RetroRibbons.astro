@@ -1,0 +1,222 @@
+---
+import { buildRibbonPath, RIBBON_BANDS, RIBBON_VIEWBOX } from '../lib/ribbons';
+---
+
+<svg
+  class="retro-ribbons"
+  viewBox={`0 0 ${RIBBON_VIEWBOX.width} ${RIBBON_VIEWBOX.height}`}
+  preserveAspectRatio="xMaxYMid slice"
+  aria-hidden="true"
+  focusable="false"
+>
+  <g class="retro-ribbons-flow">
+    {RIBBON_BANDS.map((band, index) => (
+      <path class={`retro-ribbons-band retro-ribbons-band--${band}`} data-band={index} d={buildRibbonPath(index, 0)} />
+    ))}
+  </g>
+</svg>
+
+<script>
+  // Two scroll-driven effects on the fixed, always-visible ribbons:
+  //   1. Flow  - the tall, seamlessly repeating band slides upward at a
+  //              fraction of the page's scroll speed, like a long ribbon
+  //              drifting past (wraps every RIBBON_PERIOD units).
+  //   2. Sway  - scroll position maps to a target sway phase, and each band
+  //              eases toward it at its own rate (outer bands lighter/faster,
+  //              inner bands heavier/slower) so the ribbons bend like
+  //              settling fabric.
+  // Rather than tracking scrollY 1:1, both effects run on their own clock: a
+  // rAF loop eases them toward the scroll-derived target at a capped speed.
+  // Because both motions are periodic (flow wraps every RIBBON_PERIOD units,
+  // sway repeats every 2π), the catch-up distance is kept under one period
+  // by shifting the current value by whole cycles — visually identical, so a
+  // long programmatic jump (e.g. track 1 -> track 6) turns into a short calm
+  // drift instead of a blur. The shift drops cycles toward zero (never
+  // rounding to the nearer period behind), so the ribbons always keep moving
+  // in the scroll direction and never reverse on landing. Scrolling up still
+  // reverses them. The rAF loop only runs while the ribbons are still
+  // catching up.
+  import { buildRibbonPath, RIBBON_PERIOD, RIBBON_VIEWBOX } from '../lib/ribbons';
+
+  const FLOW_SPEED = 0.35;
+  const PHASE_PER_PX = 0.0025;
+  const SWAY_PERIOD = Math.PI * 2;
+
+  // Per-second ease rates (the 60fps equivalents of the old per-frame 0.1 /
+  // 0.05, so the outer-light / inner-heavy layering feels the same).
+  const FLOW_RATE = 12;
+  const RATE_OUTER = 6.3;
+  const RATE_INNER = 3.1;
+
+  // The ribbons' own max speed. Above this (programmatic jumps, scrollbar
+  // drags), they drift rather than race. Both sit just above what normal
+  // wheel/trackpad scrolling produces, so regular scrolling is unaffected.
+  const FLOW_MAX_SPEED = 1200; // viewBox units/s (~1.2 screen heights/s)
+  const SWAY_MAX_SPEED = 6; // rad/s (normal scrolling is ~<=5)
+
+  const FLOW_EPSILON = 0.2; // viewBox units
+  const PHASE_EPSILON = 0.0005; // radians
+  const MAX_DT = 0.05; // clamp gaps (tab switch, jank) to one 20fps frame
+  const FAST_HYSTERESIS_MS = 150; // stay in "racing" mode this long after the target slows
+
+  /**
+   * Eases `current` toward `target` with exponential smoothing at `rate`/s,
+   * capped at `maxSpeed`/s over `dt` seconds. `period` makes the value cyclic:
+   * `current` is first shifted by whole periods toward zero so the gap never
+   * exceeds one cycle — invisible for a wrapped motion, and it bounds the
+   * catch-up distance after a long jump while always keeping the scroll
+   * direction (no reverse-drift "bounce" on landing). When `racing` (the
+   * target itself is moving faster than the cap), the wrap is skipped:
+   * wrapping mid-race would flip the lag's sign every half period and make
+   * the ribbon jiggle, so instead it drifts steadily in the scroll direction
+   * until the target settles. Returns [value, stillMoving].
+   */
+  function follow(
+    current: number,
+    target: number,
+    period: number,
+    rate: number,
+    maxSpeed: number,
+    dt: number,
+    epsilon: number,
+    racing: boolean,
+  ): [number, boolean] {
+    const gap = target - current;
+    const lag = racing ? gap : gap - Math.trunc(gap / period) * period;
+
+    if (Math.abs(lag) < epsilon) {
+      const snapped = target - (gap - lag);
+      return [snapped, snapped !== current];
+    }
+
+    const step = lag * (1 - Math.exp(-rate * dt));
+    const cap = maxSpeed * dt;
+    return [current + Math.max(-cap, Math.min(cap, step)), true];
+  }
+
+  function init(): void {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const flow = document.querySelector<SVGGElement>('.retro-ribbons-flow');
+    const paths = Array.from(document.querySelectorAll<SVGPathElement>('.retro-ribbons-band'));
+    if (!flow || paths.length === 0) return;
+    const flowGroup = flow;
+
+    const bands = paths.map((path, index) => ({
+      path,
+      index: Number(path.dataset.band ?? index),
+      phase: 0,
+      rate: RATE_OUTER + (RATE_INNER - RATE_OUTER) * (index / Math.max(paths.length - 1, 1)),
+    }));
+
+    // Unwrapped scroll-derived targets (viewBox units / radians).
+    let flowTarget = 0;
+    let phaseTarget = 0;
+    let flowCurrent = 0;
+    let frame = 0;
+    let lastTime = 0;
+
+    // Racing state: while the target is outrunning a channel's speed cap,
+    // `follow` skips the half-period wrap so the ribbon drifts steadily in
+    // the scroll direction instead of oscillating around wrap boundaries.
+    // The hysteresis keeps a jump "racing" through brief dips in the target's
+    // speed (e.g. Lenis's ease-out ramping down near the landing point).
+    let prevFlowTarget = 0;
+    let prevPhaseTarget = 0;
+    let flowFastUntil = 0;
+    let phaseFastUntil = 0;
+
+    function tick(now: number): void {
+      const dt = Math.min((now - lastTime) / 1000, MAX_DT) || MAX_DT;
+      lastTime = now;
+
+      if (Math.abs(flowTarget - prevFlowTarget) > FLOW_MAX_SPEED * dt) {
+        flowFastUntil = now + FAST_HYSTERESIS_MS;
+      }
+      if (Math.abs(phaseTarget - prevPhaseTarget) > SWAY_MAX_SPEED * dt) {
+        phaseFastUntil = now + FAST_HYSTERESIS_MS;
+      }
+      prevFlowTarget = flowTarget;
+      prevPhaseTarget = phaseTarget;
+
+      let moving = false;
+
+      let flowMoving: boolean;
+      [flowCurrent, flowMoving] = follow(
+        flowCurrent,
+        flowTarget,
+        RIBBON_PERIOD,
+        FLOW_RATE,
+        FLOW_MAX_SPEED,
+        dt,
+        FLOW_EPSILON,
+        now < flowFastUntil,
+      );
+      moving ||= flowMoving;
+      const offset = ((flowCurrent % RIBBON_PERIOD) + RIBBON_PERIOD) % RIBBON_PERIOD;
+      flowGroup.setAttribute('transform', `translate(0 ${-offset.toFixed(1)})`);
+
+      for (const band of bands) {
+        let bandMoving: boolean;
+        [band.phase, bandMoving] = follow(
+          band.phase,
+          phaseTarget,
+          SWAY_PERIOD,
+          band.rate,
+          SWAY_MAX_SPEED,
+          dt,
+          PHASE_EPSILON,
+          now < phaseFastUntil,
+        );
+        moving ||= bandMoving;
+        band.path.setAttribute('d', buildRibbonPath(band.index, band.phase));
+      }
+
+      frame = moving ? requestAnimationFrame(tick) : 0;
+    }
+
+    function onScroll(): void {
+      const scrollY = window.scrollY;
+
+      // The SVG is 100vh tall and RIBBON_VIEWBOX.height units tall, so this
+      // converts page pixels to viewBox units.
+      const unitsPerPx = RIBBON_VIEWBOX.height / window.innerHeight;
+      flowTarget = scrollY * FLOW_SPEED * unitsPerPx;
+      phaseTarget = scrollY * PHASE_PER_PX;
+
+      if (!frame) frame = requestAnimationFrame(tick);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    // Start at the target so refreshing mid-page doesn't play a catch-up sweep.
+    const unitsPerPx = RIBBON_VIEWBOX.height / window.innerHeight;
+    flowCurrent = flowTarget = window.scrollY * FLOW_SPEED * unitsPerPx;
+    const phase = window.scrollY * PHASE_PER_PX;
+    for (const band of bands) {
+      band.phase = phase;
+      band.path.setAttribute('d', buildRibbonPath(band.index, band.phase));
+    }
+    const offset = ((flowCurrent % RIBBON_PERIOD) + RIBBON_PERIOD) % RIBBON_PERIOD;
+    flowGroup.setAttribute('transform', `translate(0 ${-offset.toFixed(1)})`);
+
+    onScroll();
+  }
+
+  if (!window.__retroRibbonsBootstrapped) {
+    window.__retroRibbonsBootstrapped = true;
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  }
+
+  declare global {
+    interface Window {
+      __retroRibbonsBootstrapped?: boolean;
+    }
+  }
+</script>

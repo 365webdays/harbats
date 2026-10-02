@@ -15,6 +15,11 @@
   --color-avocado: #7B8A34;
   --color-teal: #2C8A87;
   --color-walnut: #5B3A26;
+  --color-ribbon-coral: #E8704F;
+  --color-ribbon-peach: #E8B886;
+  --color-ribbon-mustard: #E9C46A;
+  --color-ribbon-teal: #2A9D8F;
+  --color-ribbon-navy: #264653;
 }
 
 * {
@@ -59,9 +64,65 @@ body {
   opacity: 0.6;
 }
 
-.page-nav-hint {
-  color: var(--color-gold);
+.page-nav-right {
+  display: grid;
+  justify-items: end;
 }
+
+.page-nav-hint,
+.page-nav-top {
+  grid-area: 1 / 1;
+  color: var(--color-gold);
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.page-nav-top {
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.page-nav-top:hover,
+.page-nav-top:focus-visible {
+  border-bottom-color: currentColor;
+}
+
+.page-nav--scrolled .page-nav-hint {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.page-nav--scrolled .page-nav-top {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Decorative retro ribbons (fixed, full-height, right edge; a tall band
+   that flows upward as you scroll, dimmed behind all content — see
+   RetroRibbons.astro) --- */
+
+.retro-ribbons {
+  --ribbons-opacity: 0.35;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  height: 100svh;
+  aspect-ratio: 1 / 2;
+  max-width: 100vw;
+  z-index: 0;
+  opacity: var(--ribbons-opacity);
+  pointer-events: none;
+}
+
+.retro-ribbons-band--coral { fill: var(--color-ribbon-coral); }
+.retro-ribbons-band--peach { fill: var(--color-ribbon-peach); }
+.retro-ribbons-band--mustard { fill: var(--color-ribbon-mustard); }
+.retro-ribbons-band--teal { fill: var(--color-ribbon-teal); }
+.retro-ribbons-band--navy { fill: var(--color-ribbon-navy); }
 
 /* --- Hero / pinned scroll area (one per track) ---
    Scroll-phase budget (must match the JS constants in TrackSection.astro):
@@ -329,6 +390,10 @@ body {
 }
 
 @media (max-width: 900px) {
+  .retro-ribbons {
+    --ribbons-opacity: 0.25;
+  }
+
   .media-player {
     top: auto;
     right: 0;
