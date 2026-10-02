@@ -64,6 +64,12 @@ body {
   opacity: 0.6;
 }
 
+.page-nav-logo {
+  display: block;
+  height: 36px;
+  width: auto;
+}
+
 .page-nav-right {
   display: grid;
   justify-items: end;
