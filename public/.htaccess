@@ -1,0 +1,8 @@
+# Force HTTPS for direct origin hits. The CF-Visitor / X-Forwarded-Proto
+# guards keep Cloudflare-proxied traffic (www) from redirect-looping:
+# the edge handles TLS and forwards http to the origin with these headers set.
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+RewriteCond %{HTTP:CF-Visitor} !'"scheme":"https"'
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
