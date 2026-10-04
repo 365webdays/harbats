@@ -3,6 +3,7 @@ import '../styles/global.css';
 import 'lenis/dist/lenis.css';
 import MediaPlayer from '../components/MediaPlayer.astro';
 import RetroRibbons from '../components/RetroRibbons.astro';
+import SocialLinks from '../components/SocialLinks.astro';
 
 interface Props {
   title?: string;
@@ -85,6 +86,10 @@ const {
       </header>
 
       <slot />
+
+      <footer class="page-footer">
+        <SocialLinks />
+      </footer>
 
       <MediaPlayer />
     </div>

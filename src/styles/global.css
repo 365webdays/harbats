@@ -106,6 +106,28 @@ body {
   visibility: visible;
 }
 
+/* --- Page footer: social links, fixed to the viewport's bottom edge
+   (the footer's mirror of .page-nav). pointer-events pass through the
+   empty stretch of the bar so it never blocks content beneath it. --- */
+
+.page-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 24px 32px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.social-links {
+  display: flex;
+  gap: 24px;
+  pointer-events: auto;
+}
+
 /* --- Decorative retro ribbons (fixed, full-height, right edge; a tall band
    that flows upward as you scroll, dimmed behind all content — see
    RetroRibbons.astro) --- */
@@ -206,8 +228,23 @@ body {
 
 .track-description {
   max-width: 640px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
   opacity: 0; /* animated via JS as the description phase progresses */
   will-change: opacity, transform;
+}
+
+.track-art {
+  flex: none;
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.track-description-text {
+  min-width: 0;
 }
 
 .track-description-eyebrow {
@@ -218,30 +255,151 @@ body {
   padding-bottom: 12px;
 }
 
-.track-description-body {
+.track-credits {
+  list-style: none;
+}
+
+.track-credit {
   font-weight: 400;
   font-size: 17px;
   line-height: 1.5em;
 }
 
-.track-description-listen {
+.track-credit-roles {
+  opacity: 0.6;
+}
+
+.track-credit-roles::before {
+  content: ' — ';
+}
+
+.track-description-body {
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.5em;
+  margin-top: 12px;
+}
+
+/* --- Per-track "Listen" popover: a button styled like the old text link
+   that opens a small panel of platform links above itself (the
+   description sits low in the pinned viewport, and .hero-sticky is
+   overflow:hidden, so downward would clip). --- */
+
+.track-listen {
+  position: relative;
+  margin-top: 20px;
+}
+
+.track-listen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-weight: inherit;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--track-accent, var(--color-jeepney));
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.track-listen-toggle:hover {
+  opacity: 1;
+}
+
+.track-listen-caret {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  transition: transform 0.2s ease;
+}
+
+.track-listen.is-open .track-listen-caret {
+  transform: rotate(180deg);
+}
+
+.track-listen-popover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  min-width: 190px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--color-vinyl) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 5;
+  animation: track-listen-popover-in 0.18s ease;
+}
+
+@keyframes track-listen-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.track-listen-list {
+  list-style: none;
+}
+
+.track-listen-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--color-cream);
+  opacity: 0.75;
+  text-decoration: none;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.track-listen-link:hover,
+.track-listen-link:focus-visible {
+  opacity: 1;
+  color: var(--track-accent, var(--color-gold));
+  background: color-mix(in srgb, var(--color-cream) 7%, transparent);
+}
+
+.track-listen-link svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* Tracks with no streaming links yet (brand-new releases). */
+.track-listen-soon {
   display: inline-block;
   margin-top: 20px;
   font-size: 14px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--track-accent, var(--color-jeepney));
-  border-bottom: 1px solid currentColor;
-  opacity: 0.85;
-}
-
-.track-description-listen:hover {
-  opacity: 1;
+  opacity: 0.4;
 }
 
 /* --- Sticky media player (fixed, vertically centered on the right) --- */
 
 .media-player {
+  --drawer-w: 480px;
+  --tab-w: 32px;
+  --tab-h: 33px;
   position: fixed;
   top: 50%;
   right: 32px;
@@ -256,8 +414,17 @@ body {
   background: color-mix(in srgb, var(--color-vinyl) 85%, transparent);
   backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
-  border-radius: 12px;
+  border-radius: 12px 12px 12px 0; /* bottom-left stays square: the Who We Are tab supplies that corner's bevel */
   font-family: 'Google Sans Code', 'Inter', Arial, Helvetica, sans-serif;
+  transition: border-top-left-radius 0.4s ease;
+}
+
+/* Drawer open: square the player's top-left corner so the drawer's
+   flush top-right corner meets it without a notch — the assembly's
+   top-left bevel then lives on the drawer's outer corner. Animated
+   with the same 0.4s as the slide. */
+.media-player.about-open {
+  border-top-left-radius: 0;
 }
 
 .media-player-current {
@@ -266,7 +433,31 @@ body {
   gap: 12px;
 }
 
+.media-player-cover {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-cream) 8%, transparent);
+}
+
+.media-player-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1);
+}
+
 .media-player-toggle {
+  position: relative;
+  z-index: 1;
   flex: none;
   width: 40px;
   height: 40px;
@@ -274,15 +465,25 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid var(--color-gold);
+  border: none;
   background: transparent;
-  color: var(--color-gold);
   cursor: pointer;
-  font-size: 13px;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+  transition: transform 0.15s ease;
+}
+
+.media-player-icon {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
+}
+
+.media-player-icon.is-hidden {
+  display: none;
 }
 
 .media-player-toggle:hover {
-  background: color-mix(in srgb, var(--color-gold) 15%, transparent);
+  transform: scale(1.15);
 }
 
 .media-player-toggle:disabled,
@@ -375,7 +576,8 @@ body {
   justify-content: space-between;
 }
 
-.streaming-links-link {
+.streaming-links-link,
+.social-links-link {
   display: flex;
   color: var(--color-cream);
   opacity: 0.55;
@@ -384,15 +586,201 @@ body {
     color 0.2s ease;
 }
 
-.streaming-links-link:hover {
+.streaming-links-link:hover,
+.social-links-link:hover {
   color: var(--color-gold);
   opacity: 1;
 }
 
-.streaming-links-link svg {
+.streaming-links-link svg,
+.social-links-link svg {
   width: 18px;
   height: 18px;
   fill: currentColor;
+}
+
+/* --- "Who We Are" drawer + tab: the drawer (panel + tab) slides inside
+   an overflow-hidden clip box anchored just outside the player's left
+   edge, so it emerges from behind the panel pixel-by-pixel and can
+   never paint over it. The clip box is one tab-width wider than the
+   panel so the tab — hanging off the slider's left edge — stays
+   visible when the drawer is parked closed. visibility lives on the
+   panel only, so the tab never drops out of view; it's delayed on
+   close so the slide-back animation finishes first. --- */
+
+.who-we-are-clip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: calc(var(--drawer-w) + var(--tab-w));
+  display: flex;
+  overflow-x: clip; /* y stays visible: the tab overhangs the bottom edge
+     by 1px so its border lands flush with the player's bottom border —
+     a vertical clip would shave that border (and the corner bevel) off */
+  pointer-events: none;
+}
+
+.who-we-are-slide {
+  position: relative;
+  flex: none;
+  width: var(--drawer-w);
+  margin-left: auto;
+  transform: translateX(100%);
+  transition: transform 0.4s ease;
+}
+
+.media-player.about-open .who-we-are-slide {
+  transform: none;
+}
+
+.who-we-are {
+  position: absolute; /* inset pins to the slide: a definite height that
+     overflow-y can scroll within — height:100% here depends on the
+     slide's stretched flex height resolving, which isn't reliable */
+  inset: 0;
+  padding: 20px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--color-vinyl) 85%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-right: none;
+  border-radius: 12px 0 0 0; /* bottom-left stays square: the traveling tab supplies that bevel when open */
+  visibility: hidden;
+  pointer-events: auto;
+  transition: visibility 0s 0.4s;
+}
+
+.media-player.about-open .who-we-are {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+.who-we-are-eyebrow {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  padding-bottom: 12px;
+}
+
+.who-we-are-body {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.who-we-are-body + .who-we-are-body {
+  margin-top: 12px;
+}
+
+.who-we-are-members + .who-we-are-body {
+  margin-top: 16px;
+}
+
+.who-we-are-members {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+}
+
+.who-we-are-member {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The band hero shot spans both member columns (and the full width when
+   the grid collapses to one column on mobile). */
+.who-we-are-hero {
+  grid-column: 1 / -1;
+}
+
+.who-we-are-member img,
+.who-we-are-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-radius: 8px;
+}
+
+.who-we-are-member-name {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--color-gold);
+  opacity: 0.7;
+}
+
+.who-we-are-member-bio {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+  opacity: 0.7;
+}
+
+/* The tab hangs off the slider's left edge, bottom-aligned with the
+   player. Parked (drawer closed) it lands edge-to-edge at the player's
+   lower-left corner — the player's bottom-left corner stays square so
+   the tab's bevel supplies the corner. Open, it rides rigidly with the
+   slider to the drawer's outer bottom-left corner, overlapping 2px so
+   it covers the drawer's left border and reads as part of it. */
+.media-player-tab {
+  position: absolute;
+  right: calc(100% - 2px);
+  bottom: -1px;
+  width: var(--tab-w);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: sideways-lr;
+  padding: 14px 0;
+  border: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  background: color-mix(in srgb, var(--color-vinyl) 85%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--color-gold);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Open, the tab becomes a close button: the label fades out and a ✕
+   (absolutely centered so the swap doesn't shift the tab) fades in. */
+.media-player-tab-label,
+.media-player-tab-icon {
+  transition: opacity 0.2s ease;
+}
+
+.media-player-tab-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  opacity: 0;
+}
+
+.media-player.about-open .media-player-tab-label {
+  opacity: 0;
+}
+
+.media-player.about-open .media-player-tab-icon {
+  opacity: 1;
 }
 
 @media (max-width: 900px) {
@@ -413,7 +801,62 @@ body {
     border-right: none;
     border-bottom: none;
     border-left: none;
+    border-radius: 0 12px 0 0; /* top-left stays square: the tab supplies that corner's bevel */
+  }
+
+  /* Lift the fixed footer above the bottom player bar (~175px tall). */
+  .page-footer {
+    bottom: calc(190px + env(safe-area-inset-bottom));
+    padding: 16px;
+  }
+
+  /* Bottom-bar layout: the drawer slides up behind the bar's top edge,
+     and the tab becomes a horizontal strip riding the drawer's top-left
+     corner — parked, it stands on the bar's top edge. */
+  .who-we-are-clip {
+    top: auto;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: calc(50vh + var(--tab-h));
+    padding-top: var(--tab-h); /* headroom so the open tab isn't clipped above the drawer */
+    align-items: flex-end;
+    overflow-y: clip; /* drawer parks below the clip's bottom edge here */
+  }
+
+  .who-we-are-slide {
+    width: 100%;
+    height: auto;
+    margin-left: 0;
+    transform: translateY(100%);
+  }
+
+  .who-we-are {
+    position: static; /* back in flow — the slide is height:auto here, so
+       an absolute panel would collapse it to zero */
+    height: auto;
+    max-height: 50vh;
+    border-right: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+    border-bottom: none;
     border-radius: 12px 12px 0 0;
+  }
+
+  .who-we-are-members {
+    grid-template-columns: 1fr;
+  }
+
+  .media-player-tab {
+    right: auto;
+    left: -1px;
+    bottom: calc(100% - 1px);
+    width: auto;
+    height: var(--tab-h);
+    writing-mode: horizontal-tb;
+    padding: 0 12px;
+    border-right: 1px solid color-mix(in srgb, var(--color-cream) 15%, transparent);
+    border-bottom: none;
+    border-radius: 12px 8px 0 0;
   }
 
   .media-player-list {

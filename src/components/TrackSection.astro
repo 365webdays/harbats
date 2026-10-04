@@ -1,5 +1,6 @@
 ---
 import type { Track } from '../data/tracks';
+import { platforms } from '../data/platforms';
 
 interface Props extends Track {}
 
@@ -9,8 +10,10 @@ const {
   releaseDate,
   primaryWords,
   secondaryWords,
+  credits,
   description,
-  listenUrl,
+  artworkUrl,
+  links,
   accentColor,
   secondaryAccentColor,
   minSize,
@@ -52,9 +55,71 @@ const {
       </div>
 
       <div class="track-description">
-        <p class="track-description-eyebrow">{releaseDate}</p>
-        <p class="track-description-body">{description}</p>
-        <a class="track-description-listen" href={listenUrl}>Listen</a>
+        {artworkUrl && (
+          <img
+            class="track-art"
+            src={artworkUrl}
+            alt={`${title} cover art`}
+            loading="lazy"
+          />
+        )}
+        <div class="track-description-text">
+          <p class="track-description-eyebrow">{releaseDate}</p>
+          <ul class="track-credits">
+            {credits.map((credit) => (
+              <li class="track-credit">
+                <span class="track-credit-name">{credit.name}</span>
+                <span class="track-credit-roles">{credit.roles.join(', ')}</span>
+              </li>
+            ))}
+          </ul>
+          {description && <p class="track-description-body">{description}</p>}
+          {links && links.length > 0 ? (
+            <div class="track-listen">
+              <button
+                class="track-listen-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls={`track-listen-popover-${slug}`}
+              >
+                Listen
+                <svg class="track-listen-caret" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5z" />
+                </svg>
+              </button>
+              <div
+                class="track-listen-popover"
+                id={`track-listen-popover-${slug}`}
+                hidden
+              >
+                <ul class="track-listen-list">
+                  {links.map((link) => {
+                    const platform = platforms[link.platform];
+                    return (
+                      <li>
+                        <a
+                          class="track-listen-link"
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <svg viewBox={platform.viewBox} aria-hidden="true">
+                            {platform.paths.map((d) => (
+                              <path d={d} />
+                            ))}
+                          </svg>
+                          <span>{platform.name}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <span class="track-listen-soon">Streaming soon</span>
+          )}
+        </div>
       </div>
     </div>
   </section>
@@ -169,6 +234,10 @@ const {
       instance.trackDescription.style.transform = `translate3d(0, ${
         (1 - descriptionProgress) * 16
       }px, 0)`;
+      // Keep the (invisible) description from swallowing clicks — most
+      // importantly the "Listen" popover — until it starts appearing.
+      instance.trackDescription.style.pointerEvents =
+        descriptionProgress > 0 ? 'auto' : 'none';
     }
   }
 
@@ -179,6 +248,49 @@ const {
 
   if (!window.__scrollHeadlineBootstrapped) {
     window.__scrollHeadlineBootstrapped = true;
+
+    // "Listen" popovers: one delegated listener drives every track's
+    // toggle. Opening one closes the others; Escape or an outside click
+    // closes whatever is open.
+    const setPopoverOpen = (root: HTMLElement, open: boolean): void => {
+      root.classList.toggle('is-open', open);
+      root
+        .querySelector<HTMLButtonElement>('.track-listen-toggle')
+        ?.setAttribute('aria-expanded', String(open));
+      root
+        .querySelector<HTMLElement>('.track-listen-popover')
+        ?.toggleAttribute('hidden', !open);
+    };
+
+    const closeAllPopovers = (except?: HTMLElement): void => {
+      document
+        .querySelectorAll<HTMLElement>('.track-listen.is-open')
+        .forEach((root) => {
+          if (root !== except) setPopoverOpen(root, false);
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const toggle = target.closest<HTMLButtonElement>('.track-listen-toggle');
+      if (toggle) {
+        const root = toggle.closest<HTMLElement>('.track-listen');
+        if (!root) return;
+        const open = !root.classList.contains('is-open');
+        setPopoverOpen(root, open);
+        if (open) closeAllPopovers(root);
+        return;
+      }
+      if (!target.closest('.track-listen-popover')) closeAllPopovers();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeAllPopovers();
+    });
+
+    // Scrolling fades the description (and its popover) out — close any
+    // open popover so it isn't waiting, detached, on return.
+    window.addEventListener('scroll', () => closeAllPopovers(), { passive: true });
 
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', onResize);

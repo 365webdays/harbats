@@ -7,16 +7,32 @@ const [defaultTrack] = tracks;
 
 <aside class="media-player" style={`--track-accent: var(--color-${defaultTrack.accentColor})`}>
   <div class="media-player-current">
-    <button
-      class="media-player-toggle"
-      type="button"
-      aria-label="Play"
-      aria-pressed="false"
-      disabled={!defaultTrack.audioUrl}
-      data-role="toggle"
-    >
-      <span class="media-player-toggle-icon" data-role="icon" aria-hidden="true">▶</span>
-    </button>
+    <div class="media-player-cover">
+      <img
+        class="media-player-art"
+        data-role="art"
+        src={defaultTrack.artworkUrl}
+        alt=""
+        width="44"
+        height="44"
+        hidden={!defaultTrack.artworkUrl}
+      />
+      <button
+        class="media-player-toggle"
+        type="button"
+        aria-label="Play"
+        aria-pressed="false"
+        disabled={!defaultTrack.audioUrl}
+        data-role="toggle"
+      >
+        <svg class="media-player-icon" data-role="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+        <svg class="media-player-icon is-hidden" data-role="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+        </svg>
+      </button>
+    </div>
     <div class="media-player-meta">
       <p class="media-player-title" data-role="title">{defaultTrack.title}</p>
       <p class="media-player-eyebrow" data-role="eyebrow">{defaultTrack.releaseDate}</p>
@@ -33,6 +49,7 @@ const [defaultTrack] = tracks;
           data-title={track.title}
           data-eyebrow={track.releaseDate}
           data-audio={track.audioUrl}
+          data-art={track.artworkUrl}
           data-accent={track.accentColor}
           aria-current={track.slug === defaultTrack.slug ? 'true' : undefined}
           aria-disabled={track.audioUrl ? undefined : 'true'}
@@ -44,6 +61,102 @@ const [defaultTrack] = tracks;
   </ul>
 
   <StreamingLinks />
+
+  <div class="who-we-are-clip">
+    <div class="who-we-are-slide">
+      <div
+        class="who-we-are"
+        id="who-we-are"
+        data-role="about-panel"
+        data-lenis-prevent
+        aria-hidden="true"
+        aria-labelledby="who-we-are-eyebrow"
+      >
+        <p class="who-we-are-eyebrow" id="who-we-are-eyebrow">The Band</p>
+        <p class="who-we-are-body">
+          Harbats, the enigmatic band hailing from the vibrant streets of Manila,
+          Philippines, and bringing their own flavor to the iconic Manila sound.
+        </p>
+        <p class="who-we-are-body">
+Don't let their relaxed demeanor fool you. They'll take the stage for an audience of one or a packed house with equal passion.
+        </p>
+        <p class="who-we-are-body">
+          Armed with infectious grooves, catchy melodies, and soulful vocals,
+          Harbats' music will take you on a journey.
+        </p>
+        <!-- TODO: confirm the full member roster. -->
+        <ul class="who-we-are-members">
+          <li class="who-we-are-hero">
+            <img
+              src="/assets/img/band/hero_1_bone.jpg"
+              alt="Harbats"
+              loading="lazy"
+              onerror="this.parentElement.style.display='none'"
+            />
+          </li>
+          <li class="who-we-are-member">
+            <img
+              src="/assets/img/band/about_berninoy_bw.jpg"
+              alt="Bernie Asis"
+              loading="lazy"
+              onerror="this.style.display='none'"
+            />
+            <span class="who-we-are-member-name">Bernie Asis</span>
+            <p class="who-we-are-member-bio">
+              The Illicit Lovechild of a jukebox queen and karaoke rebel. Raised
+              on crooners, he found his groove as a crow wooing pigeons. His
+              lyrics? Like confetti in a bar brawl. His music? May inspire
+              spontaneous dancing and uncontrollable cravings for champorado.
+            </p>
+          </li>
+          <li class="who-we-are-member">
+            <img
+              src="/assets/img/band/about_maytul_bw.jpg"
+              alt="Michael Peralta"
+              loading="lazy"
+              onerror="this.style.display='none'"
+            />
+            <span class="who-we-are-member-name">Michael Peralta</span>
+            <p class="who-we-are-member-bio">
+              His musical misadventures started with his parents' Akai vinyl
+              player and a Michael Franks LP. He dabbled in piano and
+              successfully failed in achieving virtuoso-level. He overcompensates
+              by playing drums. He's still (and will always be) a rabid Spice
+              Girls fan.
+            </p>
+          </li>
+        </ul>
+        <p class="who-we-are-body">
+          From the hard-hitting beats of &ldquo;Meryendabol&rdquo; to the
+          melancholic strains of &ldquo;Hansolo&rdquo; and the soulful melodies
+          of &ldquo;Kumot,&rdquo; their songs paint a vivid picture of love,
+          life, and the absurdities of relationships.
+        </p>
+        <p class="who-we-are-body">
+          Proudly written in Filipino, their lyrics delve into the complexities
+          of human emotions, often blowing them out of proportion yet always
+          holding a grain of truth.
+        </p>
+        <p class="who-we-are-body">
+          Formed in 2014 by Bernie Asis and Mike Peralta, the band's lineup
+          includes Bernie on vocals and bass, Mike on drums and keys. Each
+          member brings their own unique talents and influences to the table,
+          contributing to the band's diverse and dynamic sound.
+        </p>
+      </div>
+      <button
+        class="media-player-tab"
+        type="button"
+        aria-expanded="false"
+        aria-controls="who-we-are"
+        data-role="about-tab"
+        aria-label="The Band"
+      >
+        <span class="media-player-tab-label" aria-hidden="true">The Band</span>
+        <span class="media-player-tab-icon" aria-hidden="true">✕</span>
+      </button>
+    </div>
+  </div>
 
   <audio data-role="audio" preload="metadata"></audio>
 </aside>
@@ -57,6 +170,7 @@ const [defaultTrack] = tracks;
     title: string;
     eyebrow: string;
     audio: string;
+    art: string;
     accent: string;
   }
 
@@ -66,15 +180,17 @@ const [defaultTrack] = tracks;
     const player = playerRef;
 
     const audioRef = player.querySelector<HTMLAudioElement>('[data-role="audio"]');
+    const artRef = player.querySelector<HTMLImageElement>('[data-role="art"]');
     const toggleRef = player.querySelector<HTMLButtonElement>('[data-role="toggle"]');
-    const iconRef = player.querySelector<HTMLElement>('[data-role="icon"]');
+    const iconPlayRef = player.querySelector<SVGElement>('[data-role="icon-play"]');
+    const iconPauseRef = player.querySelector<SVGElement>('[data-role="icon-pause"]');
     const titleRef = player.querySelector<HTMLElement>('[data-role="title"]');
     const eyebrowRef = player.querySelector<HTMLElement>('[data-role="eyebrow"]');
     const links = Array.from(
       player.querySelectorAll<HTMLAnchorElement>('.media-player-list-link')
     );
 
-    if (!audioRef || !toggleRef || !iconRef || !titleRef || !eyebrowRef || links.length === 0) {
+    if (!audioRef || !artRef || !toggleRef || !iconPlayRef || !iconPauseRef || !titleRef || !eyebrowRef || links.length === 0) {
       return;
     }
 
@@ -82,8 +198,10 @@ const [defaultTrack] = tracks;
     // the nested closures (loadTrack, setPlayingState, event handlers) below,
     // but a `const` typed as non-null at declaration does.
     const audio = audioRef;
+    const art = artRef;
     const toggle = toggleRef;
-    const icon = iconRef;
+    const iconPlay = iconPlayRef;
+    const iconPause = iconPauseRef;
     const titleEl = titleRef;
     const eyebrowEl = eyebrowRef;
 
@@ -95,6 +213,7 @@ const [defaultTrack] = tracks;
         title: link.dataset.title ?? '',
         eyebrow: link.dataset.eyebrow ?? '',
         audio: link.dataset.audio ?? '',
+        art: link.dataset.art ?? '',
         accent: link.dataset.accent ?? 'mango',
       };
     }
@@ -109,6 +228,14 @@ const [defaultTrack] = tracks;
         titleEl.textContent = data.title;
         eyebrowEl.textContent = data.eyebrow;
         player.style.setProperty('--track-accent', `var(--color-${data.accent})`);
+
+        if (data.art) {
+          art.src = data.art;
+          art.hidden = false;
+        } else {
+          art.hidden = true;
+          art.removeAttribute('src');
+        }
 
         if (data.audio) {
           audio.src = data.audio;
@@ -146,7 +273,8 @@ const [defaultTrack] = tracks;
     }
 
     function setPlayingState(isPlaying: boolean): void {
-      icon.textContent = isPlaying ? '❚❚' : '▶';
+      iconPlay.classList.toggle('is-hidden', isPlaying);
+      iconPause.classList.toggle('is-hidden', !isPlaying);
       toggle.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
       toggle.setAttribute('aria-pressed', String(isPlaying));
     }
@@ -184,6 +312,31 @@ const [defaultTrack] = tracks;
         }
       });
     });
+
+    // "Who We Are" drawer: the corner tab toggles a panel that slides out
+    // of the player's left edge (slides up over the bottom bar on mobile).
+    const aboutTab = player.querySelector<HTMLButtonElement>('[data-role="about-tab"]');
+    const aboutPanel = player.querySelector<HTMLElement>('[data-role="about-panel"]');
+
+    if (aboutTab && aboutPanel) {
+      const tab = aboutTab;
+      const panel = aboutPanel;
+
+      const setAboutOpen = (open: boolean): void => {
+        player.classList.toggle('about-open', open);
+        tab.setAttribute('aria-expanded', String(open));
+        tab.setAttribute('aria-label', open ? 'Close' : 'The Band');
+        panel.setAttribute('aria-hidden', String(!open));
+      };
+
+      tab.addEventListener('click', () => {
+        setAboutOpen(tab.getAttribute('aria-expanded') !== 'true');
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setAboutOpen(false);
+      });
+    }
 
     // Scrollspy: keep the player's loaded (but paused) track in sync with
     // whichever track section is centered in the viewport. Never interrupts
